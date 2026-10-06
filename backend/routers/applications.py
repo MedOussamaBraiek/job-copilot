@@ -1,4 +1,5 @@
 import os
+import json
 from io import BytesIO
 from fastapi import APIRouter, File, UploadFile, Form, Depends, HTTPException  
 import pdfplumber
@@ -9,7 +10,7 @@ from typing import List
 
 from services.database import get_db
 from services.models import Application as ApplicationDB
-from models import ApplicationResponse, AnalysisResult, SaveApplicationRequest
+from models import ApplicationResponse, AnalysisResult, SaveApplicationRequest, RegenerateRequest, RegeneratedContent
 from sqlalchemy.orm import Session
 
 llm = ChatGroq(model="openai/gpt-oss-120b")
@@ -42,7 +43,32 @@ async def analyze(file: UploadFile = File(...), job_url: str = Form(...)) -> Ana
     job_posting = job_posting_results["results"][0]["content"]
 
     result = compiled_supervisor.invoke({"cv_text": cv_text, "job_posting": job_posting})
+
+    result["cv_text"] = cv_text
+    result["job_posting"] = job_posting
     return result
+
+@router.post("/regenerate")
+async def regenerate(request: RegenerateRequest) -> RegeneratedContent:
+    prompt = f"""
+    CV: {request.cv_text}
+    Job: {request.job_posting}
+    
+    Current Cover Letter: {request.cover_letter}
+    Current Draft Email: {request.draft_email}
+    User Feedback: {request.user_feedback}
+    
+    Improve the cover letter and draft email based on the feedback.
+    Return ONLY a JSON object with: {{"cover_letter": "...", "draft_email": "..."}}
+    """
+    
+    result = llm.invoke(prompt).content
+    data = json.loads(result)
+    
+    return RegeneratedContent(
+        cover_letter=data["cover_letter"],
+        draft_email=data["draft_email"]
+    )
 
 @router.post("/")
 async def save_application(

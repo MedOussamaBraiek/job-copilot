@@ -129,7 +129,7 @@ supervisor_graph = StateGraph(SupervisorState)
 supervisor_graph.add_node("parser", run_parser)
 supervisor_graph.add_node("scorer", run_scorer)
 supervisor_graph.add_node("writer", run_letter)
-supervisor_graph.add_node("approve", approve_node)
+# supervisor_graph.add_node("approve", approve_node)
 supervisor_graph.add_node("low_match", low_match_node)
 
 supervisor_graph.add_edge(START, "parser")
@@ -142,9 +142,10 @@ supervisor_graph.add_conditional_edges(
         "low_match": "low_match"
     }
 )
-supervisor_graph.add_edge("writer", "approve")
+# supervisor_graph.add_edge("writer", "approve")
+# supervisor_graph.add_edge("approve", END)
+supervisor_graph.add_edge("writer", END)
 supervisor_graph.add_edge("low_match", END)
-supervisor_graph.add_edge("approve", END)
 
 compiled_supervisor = supervisor_graph.compile()
 
