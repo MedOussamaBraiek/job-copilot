@@ -13,6 +13,7 @@ from services.models import Application as ApplicationDB
 from models import ApplicationResponse, AnalysisResult, SaveApplicationRequest, RegenerateRequest, RegeneratedContent
 from sqlalchemy.orm import Session
 from fastapi.responses import StreamingResponse
+from services.email_service import send_application_email
 
 llm = ChatGroq(model="openai/gpt-oss-120b")
 tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
@@ -113,6 +114,12 @@ async def regenerate(request: RegenerateRequest) -> RegeneratedContent:
         draft_email=data["draft_email"]
     )
 
+
+
+
+
+
+
 @router.get("/")
 async def get_applications(db: Session = Depends(get_db)) -> List[ApplicationResponse]:
     result = db.query(ApplicationDB).all()  
@@ -149,7 +156,6 @@ async def save_application(
     return ApplicationResponse.from_orm(app)
 
 
-
 @router.delete("/{application_id}")
 async def delete_application(application_id: int, db: Session = Depends(get_db)):
     app = db.query(ApplicationDB).filter(ApplicationDB.id == application_id).first()
@@ -160,3 +166,32 @@ async def delete_application(application_id: int, db: Session = Depends(get_db))
     db.commit()
     return {"message": "Deleted"}
 
+
+
+@router.post("/{application_id}/send-email")
+async def send_application_email_endpoint(
+    application_id: int,
+    hiring_manager_email: str,
+    hiring_manager_name: str = "Hiring Manager",
+    db: Session = Depends(get_db)
+):
+    """Send application email with cover letter and CV"""
+    
+    app = db.query(ApplicationDB).filter(ApplicationDB.id == application_id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+    
+    success = send_application_email(
+        to_email=hiring_manager_email,
+        hiring_manager_name=hiring_manager_name,
+        cover_letter=app.cover_letter,
+        cv_text=app.cv_text,
+        job_title="Job Application"
+    )
+    
+    if success:
+        app.status = "sent"  
+        db.commit()
+        return {"status": "success", "message": f"Email sent to {hiring_manager_email}"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to send email")

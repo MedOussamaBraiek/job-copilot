@@ -74,7 +74,7 @@ export default function ApplicationDetail({
       : app.company_url;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-50 p-4">
       <div className="container mx-auto max-w-full">
         {" "}
         {/* Changed from max-w-3xl */}
@@ -86,7 +86,7 @@ export default function ApplicationDetail({
         <Card className="p-8 space-y-8 shadow-lg">
           {/* Header */}
           <div className="border-b pb-6">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2 break-words">
+            <h1 className="text-4xl font-bold text-gray-900 mb-2 wrap-break-word">
               {displayUrl}
             </h1>
             <div className="flex gap-8 text-sm text-gray-600">
@@ -141,7 +141,7 @@ export default function ApplicationDetail({
 
                       return cleaned.trim() ? (
                         <li key={i} className="flex gap-3">
-                          <span className="text-blue-600 font-bold flex-shrink-0">
+                          <span className="text-blue-600 font-bold shrink-0">
                             •
                           </span>
                           <span className="text-gray-700">
