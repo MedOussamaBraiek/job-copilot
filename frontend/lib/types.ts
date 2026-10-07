@@ -14,6 +14,22 @@ export interface RegeneratedContent {
   draft_email: string;
 }
 
-// update name with Oussama Braiek,
-// phone with +216 92994247
-// and email with oussemabraiek@gmail.com
+export interface SaveApplicationRequest {
+  cv_text: string;
+  company_url: string;
+  match_score: number;
+  cover_letter: string;
+  draft_email: string;
+  feedback: string | null;
+}
+
+export interface ApplicationResponse {
+  id: number;
+  cv_text: string;
+  company_url: string;
+  match_score: number;
+  cover_letter: string;
+  draft_email: string;
+  feedback: string | null;
+  created_at: string;
+}

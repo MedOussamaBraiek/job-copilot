@@ -70,6 +70,19 @@ async def regenerate(request: RegenerateRequest) -> RegeneratedContent:
         draft_email=data["draft_email"]
     )
 
+@router.get("/")
+async def get_applications(db: Session = Depends(get_db)) -> List[ApplicationResponse]:
+    result = db.query(ApplicationDB).all()  
+    return [ApplicationResponse.from_orm(app) for app in result]  
+
+
+@router.get("/{application_id}")
+async def get_application(application_id: int, db: Session = Depends(get_db)) -> ApplicationResponse:
+    app = db.query(ApplicationDB).filter(ApplicationDB.id == application_id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+    return ApplicationResponse.from_orm(app)
+
 @router.post("/")
 async def save_application(
     data: SaveApplicationRequest,  # Pydantic — API input
@@ -92,7 +105,15 @@ async def save_application(
     
     return ApplicationResponse.from_orm(app)
 
-@router.get("/")
-async def get_applications(db: Session = Depends(get_db)) -> List[ApplicationResponse]:
-    result = db.query(ApplicationDB).all()  
-    return [ApplicationResponse.from_orm(app) for app in result]  
+
+
+@router.delete("/{application_id}")
+async def delete_application(application_id: int, db: Session = Depends(get_db)):
+    app = db.query(ApplicationDB).filter(ApplicationDB.id == application_id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+    
+    db.delete(app)
+    db.commit()
+    return {"message": "Deleted"}
+

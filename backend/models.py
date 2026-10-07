@@ -42,10 +42,9 @@ class ApplicationResponse(BaseModel):
     cv_text: str
     company_url: str
     match_score: int
-    gaps: List[str]
-    strengths: List[str]
     cover_letter: str
     draft_email: str
+    feedback: Optional[str] = None
     created_at: datetime
 
     class Config:

@@ -13,5 +13,5 @@ class Application(Base):  # SQLAlchemy model
     match_score = Column(Integer)
     cover_letter = Column(String)
     draft_email = Column(String)
-    feedback = Column(String)
+    feedback = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.now)

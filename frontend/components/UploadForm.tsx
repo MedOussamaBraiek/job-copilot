@@ -4,8 +4,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "./ui/input";
-import { analyzeApplication, regenerateApplication } from "@/lib/api";
+import {
+  analyzeApplication,
+  regenerateApplication,
+  saveApplication,
+} from "@/lib/api";
 import { AnalysisResult } from "@/lib/types";
+import { toast } from "@/components/ui/toast";
 
 const UploadForm = () => {
   const [cvFile, setCvFile] = useState<File | null>(null);
@@ -39,7 +44,31 @@ const UploadForm = () => {
     setShowFeedback(true);
   };
 
-  const handleApprove = async () => {};
+  const handleApprove = async () => {
+    if (!results) return;
+
+    try {
+      await saveApplication({
+        cv_text: results.cv_text,
+        company_url: jobUrl,
+        match_score: results.match_score,
+        cover_letter: results.cover_letter,
+        draft_email: results.draft_email,
+        feedback: results.feedback,
+      });
+      toast.add({
+        type: "Success",
+        description: "Application saved!",
+      });
+
+      setResults(null);
+      setCvFile(null);
+      setJobUrl("");
+      alert("Application saved!");
+    } catch (error) {
+      alert("Error saving application");
+    }
+  };
 
   const handleRegenerateWithFeedback = async () => {
     if (!userFeedback.trim() || !results || !cvFile || !jobUrl) return;
@@ -95,59 +124,78 @@ const UploadForm = () => {
       </form>
       {results && (
         <>
-          <Card className="mt-8 p-6 space-y-4">
+          <Card className="mt-8 p-6 space-y-6">
             <h2 className="text-2xl font-bold">Analysis Results</h2>
 
-            <div>
-              <p className="text-sm text-gray-600">Match Score</p>
-              <p className="text-3xl font-bold">{results.match_score}/100</p>
-            </div>
+            {/* Full width summary */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <p className="text-sm text-gray-600">Match Score</p>
+                <p className="text-3xl font-bold text-green-600">
+                  {results.match_score}/100
+                </p>
+              </div>
 
-            <div>
-              <p className="text-sm font-semibold mb-2">Gaps to Address:</p>
-              <ul className="list-disc list-inside space-y-1">
-                {results.gaps.map((gap, i) => (
-                  <li key={i} className="text-sm">
-                    {gap}
-                  </li>
-                ))}
-              </ul>
+              <div>
+                <p className="text-sm font-semibold mb-2">Gaps to Address:</p>
+                <ul className="list-disc list-inside space-y-1">
+                  {results.gaps.map((gap, i) => (
+                    <li key={i} className="text-sm text-gray-700">
+                      {gap}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
 
             <div>
               <p className="text-sm font-semibold mb-2">Your Strengths:</p>
               <ul className="list-disc list-inside space-y-1">
                 {results.strengths.map((strength, i) => (
-                  <li key={i} className="text-sm">
+                  <li key={i} className="text-sm text-gray-700">
                     {strength}
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div>
-              <p className="text-sm font-semibold mb-2">Cover Letter:</p>
-              <p className="text-sm whitespace-pre-wrap bg-gray-100 p-3 rounded">
-                {results.cover_letter}
-              </p>
-            </div>
+            <hr className="my-4" />
 
-            <div>
-              <p className="text-sm font-semibold mb-2">Draft Email:</p>
-              <p className="text-sm whitespace-pre-wrap bg-gray-100 p-3 rounded">
-                {results.draft_email}
-              </p>
-            </div>
+            {/* 3-column responsive layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Cover Letter */}
+              <div className="flex flex-col">
+                <p className="text-sm font-semibold mb-2">Cover Letter</p>
+                <div className="flex-1 overflow-y-auto bg-gray-50 p-4 rounded border max-h-96">
+                  <p className="text-sm whitespace-pre-wrap text-gray-800">
+                    {results.cover_letter}
+                  </p>
+                </div>
+              </div>
 
-            <div>
-              <p className="text-sm font-semibold mb-2">AI Feedback:</p>
-              <p className="text-sm whitespace-pre-wrap bg-blue-50 p-3 rounded">
-                {results.feedback}
-              </p>
+              {/* Draft Email */}
+              <div className="flex flex-col">
+                <p className="text-sm font-semibold mb-2">Draft Email</p>
+                <div className="flex-1 overflow-y-auto bg-gray-50 p-4 rounded border max-h-96">
+                  <p className="text-sm whitespace-pre-wrap text-gray-800">
+                    {results.draft_email}
+                  </p>
+                </div>
+              </div>
+
+              {/* AI Feedback */}
+              <div className="flex flex-col">
+                <p className="text-sm font-semibold mb-2">AI Feedback</p>
+                <div className="flex-1 overflow-y-auto bg-blue-50 p-4 rounded border max-h-96">
+                  <p className="text-sm whitespace-pre-wrap text-gray-800">
+                    {results.feedback}
+                  </p>
+                </div>
+              </div>
             </div>
           </Card>
 
-          <div className="flex gap-4 mt-4">
+          <div className="flex gap-4 mt-6 flex-wrap">
             <Button
               onClick={() => handleApprove()}
               className="bg-green-600 hover:bg-green-700"
