@@ -4,6 +4,7 @@ from langchain_groq import ChatGroq
 from langgraph.graph import StateGraph, START, END
 from pydantic import BaseModel, Field
 from .parser_agent import ParsingResult
+import json
 
 load_dotenv("./.env")
 
@@ -29,11 +30,18 @@ def scorer_node(state: ScorerState) -> ScorerState:
     CV Data: {parsed_cv_dict}
     Job: {state['job_posting']}
 
-    Score the CV based on the giving Job description and return ONLY valid JSON (no markdown).
-"""
-    scorer = llm.with_structured_output(ScoreResult)
-    result = scorer.invoke(prompt)
-
+   Score the CV based on the given Job description.
+    Return ONLY valid JSON (no markdown, no extra text):
+    {{"match_score": <0-100>, "gaps": [...], "strengths": [...]}}
+    """
+    response = llm.invoke(prompt).content
+    data = json.loads(response)
+    
+    result = ScoreResult(
+        match_score=int(data["match_score"]),
+        gaps=data["gaps"],
+        strengths=data["strengths"]
+    )
     return {"score": result}
 
 scorer_graph = StateGraph(ScorerState)

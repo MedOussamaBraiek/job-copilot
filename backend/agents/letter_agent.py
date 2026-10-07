@@ -3,6 +3,7 @@ from typing import TypedDict, List
 from langchain_groq import ChatGroq
 from langgraph.graph import StateGraph, START, END
 from pydantic import BaseModel, Field
+import json 
 
 load_dotenv("./.env")
 
@@ -26,21 +27,30 @@ def letter_node(state: LetterState) -> LetterState:
     gaps: {state["gaps"]}
     strengths: {state["strengths"]}
 
-    Generate:
+     Generate:
     1. A professional cover letter
     2. A draft email
     3. Actionable feedback: What specific things should this candidate do to land this job?
-    return ONLY valid JSON (no markdown).
-"""
-    writer = llm.with_structured_output(LetterResult)
-    result = writer.invoke(prompt)
+    
+    Return ONLY valid JSON (no markdown, no extra text):
+    {{"cover_letter": "...", "draft_email": "...", "feedback": "..."}}
+    """
+
+    response = llm.invoke(prompt).content
+    data = json.loads(response)
+    
+    result = LetterResult(
+        cover_letter=data["cover_letter"],
+        draft_email=data["draft_email"],
+        feedback=data["feedback"]
+    )
     return {"result": result}
+
 
 
 writer_graph = StateGraph(LetterState)
 
 writer_graph.add_node("write", letter_node)
-
 writer_graph.add_edge(START, "write")
 writer_graph.add_edge("write", END)
 

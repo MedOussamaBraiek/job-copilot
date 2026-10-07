@@ -11,12 +11,14 @@ import {
 } from "@/lib/api";
 import { AnalysisResult } from "@/lib/types";
 import { toast } from "@/components/ui/toast";
+import { ProgressStreamer } from "./ProgressStreamer";
 
 const UploadForm = () => {
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [jobUrl, setJobUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<AnalysisResult | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
 
   const [showFeedback, setShowFeedback] = useState(false);
   const [userFeedback, setUserFeedback] = useState("");
@@ -24,6 +26,7 @@ const UploadForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAnalyzing(true);
 
     if (!cvFile || !jobUrl) {
       return;
@@ -68,6 +71,11 @@ const UploadForm = () => {
     } catch (error) {
       alert("Error saving application");
     }
+  };
+
+  const handleStreamComplete = (result: AnalysisResult) => {
+    setResults(result);
+    setAnalyzing(false);
   };
 
   const handleRegenerateWithFeedback = async () => {
@@ -122,7 +130,15 @@ const UploadForm = () => {
           {loading ? "Analyzing..." : "Analyze"}
         </Button>
       </form>
-      {results && (
+
+      <ProgressStreamer
+        show={analyzing}
+        cvFile={cvFile}
+        jobUrl={jobUrl}
+        onComplete={handleStreamComplete}
+      />
+
+      {!analyzing && results && (
         <>
           <Card className="mt-8 p-6 space-y-6">
             <h2 className="text-2xl font-bold">Analysis Results</h2>
@@ -161,51 +177,89 @@ const UploadForm = () => {
 
             <hr className="my-4" />
 
-            {/* 3-column responsive layout */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Cover Letter */}
-              <div className="flex flex-col">
-                <p className="text-sm font-semibold mb-2">Cover Letter</p>
-                <div className="flex-1 overflow-y-auto bg-gray-50 p-4 rounded border max-h-96">
-                  <p className="text-sm whitespace-pre-wrap text-gray-800">
-                    {results.cover_letter}
-                  </p>
-                </div>
+            {results.match_score < 50 ? (
+              <div className="bg-yellow-50 border border-yellow-200 p-4 rounded">
+                <p className="text-sm font-semibold text-yellow-800">
+                  Score Below 50%
+                </p>
+                <p className="text-sm text-yellow-700 mt-1">
+                  Your match score is {results.match_score}/100. Cover letter
+                  not generated due to low match.
+                  <br />
+                  Consider building skills in the gap areas below before
+                  applying.
+                </p>
               </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Cover Letter */}
+                <div className="flex flex-col">
+                  <p className="text-sm font-semibold mb-2">Cover Letter</p>
+                  <div className="flex-1 overflow-y-auto bg-gray-50 p-4 rounded border max-h-96">
+                    <p className="text-sm whitespace-pre-wrap text-gray-800">
+                      {results.cover_letter}
+                    </p>
+                  </div>
+                </div>
 
-              {/* Draft Email */}
-              <div className="flex flex-col">
-                <p className="text-sm font-semibold mb-2">Draft Email</p>
-                <div className="flex-1 overflow-y-auto bg-gray-50 p-4 rounded border max-h-96">
-                  <p className="text-sm whitespace-pre-wrap text-gray-800">
-                    {results.draft_email}
-                  </p>
+                {/* Draft Email */}
+                <div className="flex flex-col">
+                  <p className="text-sm font-semibold mb-2">Draft Email</p>
+                  <div className="flex-1 overflow-y-auto bg-gray-50 p-4 rounded border max-h-96">
+                    <p className="text-sm whitespace-pre-wrap text-gray-800">
+                      {results.draft_email}
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              {/* AI Feedback */}
-              <div className="flex flex-col">
-                <p className="text-sm font-semibold mb-2">AI Feedback</p>
-                <div className="flex-1 overflow-y-auto bg-blue-50 p-4 rounded border max-h-96">
-                  <p className="text-sm whitespace-pre-wrap text-gray-800">
-                    {results.feedback}
-                  </p>
+                {/* AI Feedback */}
+                <div className="flex flex-col">
+                  <p className="text-sm font-semibold mb-2">AI Feedback</p>
+                  <div className="flex-1 overflow-y-auto bg-blue-50 p-4 rounded border max-h-96">
+                    <ul className="space-y-3 text-sm text-gray-800">
+                      {results.feedback?.split("\n").map((line, i) => {
+                        const cleaned = line.replace(/^\d+\.\s*/, "");
+                        const colonIndex = cleaned.indexOf(":");
+                        const hasColon = colonIndex > -1 && colonIndex < 50;
+
+                        return cleaned.trim() ? (
+                          <li key={i} className="flex gap-2">
+                            <span className="text-blue-600 min-w-fit">•</span>
+                            <span>
+                              {hasColon ? (
+                                <>
+                                  <span className="font-bold text-gray-900">
+                                    {cleaned.substring(0, colonIndex)}
+                                  </span>
+                                  <span>{cleaned.substring(colonIndex)}</span>
+                                </>
+                              ) : (
+                                cleaned
+                              )}
+                            </span>
+                          </li>
+                        ) : null;
+                      })}
+                    </ul>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </Card>
 
-          <div className="flex gap-4 mt-6 flex-wrap">
-            <Button
-              onClick={() => handleApprove()}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              Approve & Save
-            </Button>
-            <Button onClick={handleReject} variant="outline">
-              Reject & Improve
-            </Button>
-          </div>
+          {!analyzing && results && results.match_score >= 50 && (
+            <div className="flex gap-4 mt-6 flex-wrap">
+              <Button
+                onClick={() => handleApprove()}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Approve & Save
+              </Button>
+              <Button onClick={handleReject} variant="outline">
+                Reject & Improve
+              </Button>
+            </div>
+          )}
 
           {showFeedback && (
             <div className="mt-4 space-y-2">

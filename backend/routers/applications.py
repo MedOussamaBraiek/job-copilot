@@ -12,6 +12,7 @@ from services.database import get_db
 from services.models import Application as ApplicationDB
 from models import ApplicationResponse, AnalysisResult, SaveApplicationRequest, RegenerateRequest, RegeneratedContent
 from sqlalchemy.orm import Session
+from fastapi.responses import StreamingResponse
 
 llm = ChatGroq(model="openai/gpt-oss-120b")
 tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
@@ -33,7 +34,7 @@ async def extract_pdf_text(file: UploadFile):
     return cv_text
 
 @router.post("/analyze")
-async def analyze(file: UploadFile = File(...), job_url: str = Form(...)) -> AnalysisResult:
+async def analyze(file: UploadFile = File(...), job_url: str = Form(...)):
     cv_text = await extract_pdf_text(file)
     job_posting_results = tavily.search(job_url)
 
@@ -42,11 +43,53 @@ async def analyze(file: UploadFile = File(...), job_url: str = Form(...)) -> Ana
     
     job_posting = job_posting_results["results"][0]["content"]
 
-    result = compiled_supervisor.invoke({"cv_text": cv_text, "job_posting": job_posting})
+    step_names = {
+        "parser": "Parsing CV",
+        "scorer": "Scoring Match",
+        "writer": "Generating Letter",
+        "low_match": "Processing Results"
+    }
 
-    result["cv_text"] = cv_text
-    result["job_posting"] = job_posting
-    return result
+    def event_generator():
+        initial_state = {
+            "cv_text": cv_text,
+            "job_posting": job_posting,
+            "match_score": 0,
+            "gaps": [],
+            "strengths": [],
+            "cover_letter": "",
+            "draft_email": "",
+            "feedback": "",
+            "human_approved": False
+        }
+        
+        # Stream progress events
+        for event in compiled_supervisor.stream(initial_state):
+            for node_name, updates in event.items():
+                step_name = step_names.get(node_name, node_name)
+                yield f"data: {json.dumps({'step': step_name, 'status': 'in_progress'})}\n\n"
+        
+        # Get final result
+        result = compiled_supervisor.invoke(initial_state)
+        
+        print(f"DEBUG Final result: {result}")
+        
+        # Send final result
+        final_data = {
+            "status": "complete",
+            "cv_text": cv_text,
+            "job_posting": job_posting,
+            "match_score": result["match_score"],
+            "gaps": result["gaps"],
+            "strengths": result["strengths"],
+            "cover_letter": result["cover_letter"],
+            "draft_email": result["draft_email"],
+            "feedback": result["feedback"]
+        }
+        print(f"DEBUG Sending: {final_data}")
+        yield f"data: {json.dumps(final_data)}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 @router.post("/regenerate")
 async def regenerate(request: RegenerateRequest) -> RegeneratedContent:

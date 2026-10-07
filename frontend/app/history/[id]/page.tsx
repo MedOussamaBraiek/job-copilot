@@ -130,22 +130,35 @@ export default function ApplicationDetail({
                 </h2>
                 <div className="bg-blue-50 p-6 rounded-lg border border-blue-200 flex-1 overflow-y-auto max-h-96">
                   <ul className="space-y-3 text-sm leading-relaxed">
-                    {app.feedback.split("\n").map(
-                      (line, i) =>
-                        line.trim() && (
-                          <li key={i} className="flex gap-3">
-                            <span className="text-blue-600 font-bold flex-shrink-0">
-                              •
-                            </span>
-                            <span className="text-gray-700">
-                              {line
-                                .replace(/^\d+\.\s*/, "")
-                                .replace(/^\*\*/, "")
-                                .replace(/\*\*:/, ":")}
-                            </span>
-                          </li>
-                        ),
-                    )}
+                    {app.feedback.split("\n").map((line, i) => {
+                      const cleaned = line
+                        .replace(/^\d+\.\s*/, "")
+                        .replace(/^\*\*/, "")
+                        .replace(/\*\*:/, ":");
+
+                      const colonIndex = cleaned.indexOf(":");
+                      const hasColon = colonIndex > -1 && colonIndex < 50;
+
+                      return cleaned.trim() ? (
+                        <li key={i} className="flex gap-3">
+                          <span className="text-blue-600 font-bold flex-shrink-0">
+                            •
+                          </span>
+                          <span className="text-gray-700">
+                            {hasColon ? (
+                              <>
+                                <span className="font-bold text-gray-900">
+                                  {cleaned.substring(0, colonIndex)}
+                                </span>
+                                <span>{cleaned.substring(colonIndex)}</span>
+                              </>
+                            ) : (
+                              cleaned
+                            )}
+                          </span>
+                        </li>
+                      ) : null;
+                    })}
                   </ul>
                 </div>
               </div>
