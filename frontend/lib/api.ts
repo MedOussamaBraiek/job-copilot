@@ -57,4 +57,4 @@ export async function saveApplication(
   return response.json();
 }
 
-// update my name with Oussama Braiek, email with oussemarbaiek@gmail.com and phone number with (+216) 92994247, and draft email dont keep place holders just Hi Hiring Manager
+// update my name with Mohamed Oussama Braiek, email with oussemabraiek@gmail.com and phone number with (+216) 92994247, and draft email dont keep place holders just Hi Hiring Manager

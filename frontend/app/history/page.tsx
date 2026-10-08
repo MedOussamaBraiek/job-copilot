@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ApplicationResponse } from "@/lib/types";
-import { toast } from "@/components/ui/toast";
+import { notifyError, notifySuccess } from "@/lib/notify";
 
 import {
   AlertDialog,
@@ -42,16 +42,9 @@ const History = () => {
         method: "DELETE",
       });
       setApplications(applications.filter((app) => app.id !== id));
-      toast.add({
-        type: "Success",
-        description: "Application deleted!",
-      });
+      notifySuccess("Application deleted");
     } catch (error) {
-      toast.add({
-        type: "error",
-        description: "Failed to delete application",
-        priority: "high",
-      });
+      notifyError("Could not delete", "Please try again.");
     }
     setDeleteId(null);
   };
@@ -76,6 +69,7 @@ const History = () => {
               <tr>
                 <th className="px-4 py-3 text-left">Company</th>
                 <th className="px-4 py-3 text-left">Score</th>
+                <th className="px-4 py-3 text-left">Status</th>
                 <th className="px-4 py-3 text-left">Applied</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
@@ -84,11 +78,24 @@ const History = () => {
               {applications.map((app) => (
                 <tr key={app.id} className="border-b hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium">
-                    {app.company_url.slice(0, 50)}
+                    {app.company_name || "Unknown company"}
                   </td>
                   <td className="px-4 py-3">
                     <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
                       {app.match_score}/100
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`px-2 py-1 rounded capitalize ${
+                        app.status === "emailed"
+                          ? "bg-blue-100 text-blue-800"
+                          : app.status === "applied"
+                            ? "bg-purple-100 text-purple-800"
+                            : "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {app.status}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-gray-600">
@@ -105,14 +112,16 @@ const History = () => {
                       open={deleteId === app.id}
                       onOpenChange={(open) => !open && setDeleteId(null)}
                     >
-                      <AlertDialogTrigger>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => setDeleteId(app.id)}
-                        >
-                          Delete
-                        </Button>
+                      <AlertDialogTrigger
+                        render={
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => setDeleteId(app.id)}
+                          />
+                        }
+                      >
+                        Delete
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>

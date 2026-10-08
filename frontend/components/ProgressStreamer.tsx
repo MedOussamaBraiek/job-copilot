@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { AnalysisResult } from "@/lib/types";
+import { notifyError } from "@/lib/notify";
 
 interface ProgressStep {
   step: string;
@@ -12,24 +13,38 @@ export const ProgressStreamer = ({
   show,
   cvFile,
   jobUrl,
+  jobDescription,
+  companyName,
   onComplete,
+  onFailed,
 }: {
   show: boolean;
   cvFile?: File | null;
   jobUrl?: string;
+  jobDescription?: string;
+  companyName?: string;
   onComplete?: (result: AnalysisResult) => void;
+  onFailed?: () => void;
 }) => {
   const [steps, setSteps] = useState<ProgressStep[]>([]);
+  const startedRef = useRef(false);
 
   useEffect(() => {
-    if (!show || !cvFile || !jobUrl) return;
+    if (!show) startedRef.current = false;
+  }, [show]);
+
+  useEffect(() => {
+    if (!show || !cvFile || (!jobUrl && !jobDescription) || startedRef.current) return;
+    startedRef.current = true;
 
     setSteps([]);
 
     const streamAnalysis = async () => {
       const formData = new FormData();
       formData.append("file", cvFile);
-      formData.append("job_url", jobUrl);
+      formData.append("job_url", jobUrl ?? "");
+      formData.append("job_description", jobDescription ?? "");
+      formData.append("company_name_input", companyName ?? "");
 
       try {
         const response = await fetch(
@@ -61,20 +76,22 @@ export const ProgressStreamer = ({
 
                 if (data.status === "in_progress") {
                   setSteps((prev) => [...prev, { step: data.step }]);
+                } else if (data.status === "error") {
+                  notifyError("Analysis failed", data.message);
+                  onFailed?.();
                 } else if (data.status === "complete") {
-                  // Call parent with results
-                  if (onComplete) {
-                    onComplete({
-                      cv_text: data.cv_text,
-                      job_posting: data.job_posting,
-                      match_score: data.match_score,
-                      gaps: data.gaps,
-                      strengths: data.strengths,
-                      cover_letter: data.cover_letter,
-                      draft_email: data.draft_email,
-                      feedback: data.feedback,
-                    });
-                  }
+                  onComplete?.({
+                    cv_text: data.cv_text,
+                    job_posting: data.job_posting,
+                    match_score: data.match_score,
+                    gaps: data.gaps,
+                    strengths: data.strengths,
+                    cover_letter: data.cover_letter,
+                    draft_email: data.draft_email,
+                    feedback: data.feedback,
+                    company_name: data.company_name,
+                    hiring_email: data.hiring_email,
+                  });
                 }
               } catch (e) {
                 console.error("Parse error:", e);
@@ -83,12 +100,13 @@ export const ProgressStreamer = ({
           }
         }
       } catch (error) {
-        console.error("Stream error:", error);
+        notifyError("Analysis failed", "Could not reach the server.");
+        onFailed?.();
       }
     };
 
     streamAnalysis();
-  }, [show, cvFile, jobUrl, onComplete]);
+  }, [show, cvFile, jobUrl, jobDescription, companyName, onComplete, onFailed]);
 
   if (!show) return null;
 

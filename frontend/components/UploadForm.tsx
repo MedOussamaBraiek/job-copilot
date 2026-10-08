@@ -4,19 +4,24 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "./ui/input";
-import {
-  analyzeApplication,
-  regenerateApplication,
-  saveApplication,
-} from "@/lib/api";
+import { regenerateApplication, saveApplication } from "@/lib/api";
 import { AnalysisResult } from "@/lib/types";
-import { toast } from "@/components/ui/toast";
+import { notifyError, notifySuccess } from "@/lib/notify";
 import { ProgressStreamer } from "./ProgressStreamer";
+
+const toBase64 = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve((reader.result as string).split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 
 const UploadForm = () => {
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [jobUrl, setJobUrl] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [jobDescription, setJobDescription] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [results, setResults] = useState<AnalysisResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
 
@@ -24,23 +29,11 @@ const UploadForm = () => {
   const [userFeedback, setUserFeedback] = useState("");
   const [regenerating, setRegenerating] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!cvFile || (!jobUrl && !jobDescription.trim())) return;
+    setResults(null);
     setAnalyzing(true);
-
-    if (!cvFile || !jobUrl) {
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const analysisResults = await analyzeApplication(cvFile, jobUrl);
-
-      setResults(analysisResults);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleReject = () => {
@@ -58,18 +51,22 @@ const UploadForm = () => {
         cover_letter: results.cover_letter,
         draft_email: results.draft_email,
         feedback: results.feedback,
+        company_name: results.company_name,
+        hiring_email: results.hiring_email,
+        cv_pdf_base64: cvFile ? await toBase64(cvFile) : null,
+        job_posting: results.job_posting,
+        gaps: results.gaps,
+        strengths: results.strengths,
       });
-      toast.add({
-        type: "Success",
-        description: "Application saved!",
-      });
+      notifySuccess("Application saved", "Added to your history.");
 
       setResults(null);
       setCvFile(null);
       setJobUrl("");
-      alert("Application saved!");
+      setJobDescription("");
+      setCompanyName("");
     } catch (error) {
-      alert("Error saving application");
+      notifyError("Could not save", "Please try again.");
     }
   };
 
@@ -126,8 +123,35 @@ const UploadForm = () => {
             onChange={(e) => setJobUrl(e.target.value)}
           />
         </div>
-        <Button type="submit" disabled={loading || !cvFile || !jobUrl}>
-          {loading ? "Analyzing..." : "Analyze"}
+        <div>
+          <label htmlFor="job-description" className="block text-sm font-medium mb-2">
+            Job description (recommended)
+          </label>
+          <textarea
+            id="job-description"
+            rows={8}
+            placeholder="Paste the full job description here"
+            value={jobDescription}
+            onChange={(e) => setJobDescription(e.target.value)}
+            className="w-full p-2 border rounded text-sm"
+          />
+        </div>
+        <div>
+          <label htmlFor="company-name" className="block text-sm font-medium mb-2">
+            Company name
+          </label>
+          <Input
+            id="company-name"
+            placeholder="e.g. Workstream Technologies"
+            value={companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
+          />
+        </div>
+        <Button
+          type="submit"
+          disabled={analyzing || !cvFile || (!jobUrl && !jobDescription.trim())}
+        >
+          {analyzing ? "Analyzing..." : "Analyze"}
         </Button>
       </form>
 
@@ -135,6 +159,9 @@ const UploadForm = () => {
         show={analyzing}
         cvFile={cvFile}
         jobUrl={jobUrl}
+        jobDescription={jobDescription}
+        companyName={companyName}
+        onFailed={() => setAnalyzing(false)}
         onComplete={handleStreamComplete}
       />
 

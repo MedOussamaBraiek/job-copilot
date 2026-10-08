@@ -32,6 +32,10 @@ def letter_node(state: LetterState) -> LetterState:
     2. A draft email
     3. Actionable feedback: What specific things should this candidate do to land this job?
     
+    Constraints:
+    - Cover letter: plain text, at most 250 words, 3 short paragraphs, so it fits on one page.
+    - Draft email: first line is "Subject: ...", then a short body under 120 words saying the CV and cover letter are attached.
+
     Return ONLY valid JSON (no markdown, no extra text):
     {{"cover_letter": "...", "draft_email": "...", "feedback": "..."}}
     """

@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { ApplicationResponse } from "@/lib/types";
+import {
+  API,
+  ApplicationActions,
+  CopyButton,
+  DownloadPdfButton,
+  CompanyNameEditor,
+} from "@/components/ApplicationActions";
 
 export default function ApplicationDetail({
   params,
@@ -67,28 +74,39 @@ export default function ApplicationDetail({
     );
   }
 
-  // Truncate long URLs nicely
-  const displayUrl =
-    app.company_url.length > 50
-      ? app.company_url.substring(0, 47) + "..."
-      : app.company_url;
-
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-50 p-4">
       <div className="container mx-auto max-w-full">
         {" "}
-        {/* Changed from max-w-3xl */}
-        <Link href="/history">
-          <Button variant="outline" size="sm" className="mb-6">
-            ← Back
-          </Button>
-        </Link>
+        <div className="mb-6">
+          <Link href="/history">
+            <Button variant="outline" size="sm">
+              ← Back
+            </Button>
+          </Link>
+        </div>
         <Card className="p-8 space-y-8 shadow-lg">
           {/* Header */}
           <div className="border-b pb-6">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2 wrap-break-word">
-              {displayUrl}
-            </h1>
+            <div className="flex items-start justify-between gap-4 mb-2">
+              <CompanyNameEditor app={app} onChange={setApp} />
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  nativeButton={false}
+                  render={
+                    <a href={app.company_url} target="_blank" rel="noreferrer" />
+                  }
+                >
+                  Open job posting
+                </Button>
+                <DownloadPdfButton
+                  href={`${API}/${app.id}/cv.pdf`}
+                  label="Download CV (PDF)"
+                />
+              </div>
+            </div>
             <div className="flex gap-8 text-sm text-gray-600">
               <div>
                 <span className="font-semibold text-green-600 text-lg">
@@ -106,18 +124,26 @@ export default function ApplicationDetail({
           {/* Three Column Layout */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div className="flex flex-col">
-              <h2 className="text-xl font-bold mb-4 text-gray-900">
-                Cover Letter
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Cover Letter</h2>
+                <div className="flex gap-1">
+                  <CopyButton text={app.cover_letter} label="Copy cover letter" />
+                  <DownloadPdfButton
+                    href={`${API}/${app.id}/cover-letter.pdf`}
+                    label="Download cover letter (PDF)"
+                  />
+                </div>
+              </div>
               <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 whitespace-pre-wrap text-sm leading-relaxed flex-1 overflow-y-auto max-h-96">
                 {app.cover_letter}
               </div>
             </div>
 
             <div className="flex flex-col">
-              <h2 className="text-xl font-bold mb-4 text-gray-900">
-                Draft Email
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Draft Email</h2>
+                <CopyButton text={app.draft_email} label="Copy draft email" />
+              </div>
               <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 whitespace-pre-wrap text-sm leading-relaxed flex-1 overflow-y-auto max-h-96">
                 {app.draft_email}
               </div>
@@ -165,6 +191,10 @@ export default function ApplicationDetail({
             )}
           </div>
         </Card>
+
+        <div className="mt-8">
+          <ApplicationActions app={app} onChange={setApp} />
+        </div>
       </div>
     </div>
   );

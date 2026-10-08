@@ -1,78 +1,68 @@
+import os
 import smtplib
+from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email.mime.application import MIMEApplication
-from email import encoders
-import os
 from io import BytesIO
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
+from xml.sax.saxutils import escape
 
-def generate_cover_letter_pdf(cover_letter_text: str) -> BytesIO:
-    """Generate PDF from cover letter text"""
-    pdf_buffer = BytesIO()
-    doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
-    
-    styles = getSampleStyleSheet()
-    custom_style = ParagraphStyle(
-        'Custom',
-        parent=styles['Normal'],
-        fontSize=11,
-        leading=14,
-    )
-    
-    story = [Paragraph(cover_letter_text.replace('\n', '<br/>'), custom_style)]
-    doc.build(story)
-    pdf_buffer.seek(0)
-    return pdf_buffer
+from dotenv import load_dotenv
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.platypus import Paragraph, SimpleDocTemplate
+
+load_dotenv("./.env")
+
+
+PDF_CHAR_MAP = str.maketrans({"‐": "-", "‑": "-", "‒": "-"})
+
+
+def text_to_pdf(text: str) -> BytesIO:
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    style = ParagraphStyle("Body", parent=getSampleStyleSheet()["Normal"], fontSize=11, leading=14)
+    cleaned = escape(text.translate(PDF_CHAR_MAP))
+    doc.build([Paragraph(cleaned.replace("\n", "<br/>"), style)])
+    buffer.seek(0)
+    return buffer
+
+
+def split_subject(draft: str, default_subject: str) -> tuple[str, str]:
+    first, _, rest = draft.partition("\n")
+    if first.lower().startswith("subject:"):
+        return first[len("subject:"):].strip(), rest.strip()
+    return default_subject, draft.strip()
+
+
+def attach_pdf(data: bytes, filename: str) -> MIMEApplication:
+    part = MIMEApplication(data, _subtype="pdf")
+    part.add_header("Content-Disposition", "attachment", filename=filename)
+    return part
+
 
 def send_application_email(
     to_email: str,
-    hiring_manager_name: str,
+    draft_email: str,
     cover_letter: str,
-    cv_text: str,
-    job_title: str
+    cv_pdf: bytes,
+    job_title: str,
 ) -> bool:
-    """Send application email with cover letter and CV"""
     try:
         sender_email = os.getenv("GMAIL_EMAIL")
         sender_password = os.getenv("GMAIL_PASSWORD")
-        
-        # Create message
+        subject, body = split_subject(draft_email, f"Application for {job_title}")
+
         msg = MIMEMultipart()
-        msg['From'] = sender_email
-        msg['To'] = to_email
-        msg['Subject'] = f"Application for {job_title}"
-        
-        # Email body
-        body = f"""Dear {hiring_manager_name},
+        msg["From"] = sender_email
+        msg["To"] = to_email
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+        msg.attach(attach_pdf(text_to_pdf(cover_letter).getvalue(), "cover_letter.pdf"))
+        msg.attach(attach_pdf(cv_pdf, "cv.pdf"))
 
-Please find attached my cover letter and CV for your review.
-
-Best regards"""
-        
-        msg.attach(MIMEText(body, 'plain'))
-        
-        # Attach cover letter as PDF
-        cover_letter_pdf = generate_cover_letter_pdf(cover_letter)
-        part = MIMEApplication(cover_letter_pdf.read(), Name="cover_letter.pdf")
-        part['Content-Disposition'] = 'attachment; filename="cover_letter.pdf"'
-        msg.attach(part)
-        
-        # Attach CV as text file (or PDF if available)
-        cv_part = MIMEText(cv_text)
-        cv_part['Content-Disposition'] = 'attachment; filename="cv.txt"'
-        msg.attach(cv_part)
-        
-        # Send via Gmail
-        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-        server.login(sender_email, sender_password)
-        server.send_message(msg)
-        server.quit()
-        
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
         return True
     except Exception as e:
         print(f"Email error: {e}")
