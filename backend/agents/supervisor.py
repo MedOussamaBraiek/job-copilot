@@ -7,6 +7,7 @@ from langgraph.graph import StateGraph, START, END
 from .parser_agent import compiled_parser, ParsingResult
 from .scorer_agent import compiled_scorer
 from .letter_agent import compiled_letter
+from services.job_utils import fill_placeholders
 
 class SupervisorState(TypedDict):
     job_posting: str
@@ -40,12 +41,22 @@ def run_scorer(state):
     }
 
 def run_letter(state):
-    # Call letter_agent
-    result = compiled_letter.invoke({"job_posting": state["job_posting"], "gaps": state["gaps"], "strengths": state["strengths"]})
+    candidate = state["parsed_cv"]
+    name = candidate.name or ""
+    email = candidate.email or ""
+    phone = candidate.phone or ""
+    result = compiled_letter.invoke({
+        "name": name,
+        "email": email,
+        "phone": phone,
+        "job_posting": state["job_posting"],
+        "gaps": state["gaps"],
+        "strengths": state["strengths"],
+    })
     letter_result = result["result"]
     return {
-        "cover_letter": letter_result.cover_letter,
-        "draft_email": letter_result.draft_email,
+        "cover_letter": fill_placeholders(letter_result.cover_letter, name, email, phone),
+        "draft_email": fill_placeholders(letter_result.draft_email, name, email, phone),
         "feedback": letter_result.feedback
     }
 

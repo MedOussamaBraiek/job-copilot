@@ -15,6 +15,9 @@ class LetterResult(BaseModel):
     feedback: str = Field(description="Professional feedback based on gabs and strengths")
 
 class LetterState(TypedDict):
+    name: str
+    email: str
+    phone: str
     job_posting: str
     gaps: List[str]
     strengths: List[str]
@@ -35,6 +38,12 @@ def letter_node(state: LetterState) -> LetterState:
     Constraints:
     - Cover letter: plain text, at most 250 words, 3 short paragraphs, so it fits on one page.
     - Draft email: first line is "Subject: ...", then a short body under 120 words saying the CV and cover letter are attached.
+
+    Candidate details (use these exactly in the sign-off and the email):
+    name: {state["name"]}
+    email: {state["email"]}
+    phone: {state["phone"]}
+    Never write bracketed placeholders such as [Your Name] or [Phone Number].
 
     Return ONLY valid JSON (no markdown, no extra text):
     {{"cover_letter": "...", "draft_email": "...", "feedback": "..."}}
@@ -63,6 +72,9 @@ compiled_letter = writer_graph.compile()
 
 if __name__ == "__main__":
     test_result = compiled_letter.invoke({
+        "name": "Test Candidate",
+        "email": "test@example.com",
+        "phone": "+1 555 0100",
         "job_posting": "Senior Python dev. Need: Django, AWS",
         "gaps": ["Django", "AWS", "5yr exp"],
         "strengths": ["Python"]

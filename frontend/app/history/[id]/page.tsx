@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { ApplicationResponse } from "@/lib/types";
+import { API } from "@/lib/config";
 import {
-  API,
   ApplicationActions,
   CopyButton,
   DownloadPdfButton,
@@ -31,7 +31,7 @@ export default function ApplicationDetail({
   const fetchApplication = async () => {
     try {
       const response = await fetch(
-        `http://localhost:8000/api/applications/${id}`,
+        `${API}/${id}`,
       );
       if (!response.ok) {
         setError(true);

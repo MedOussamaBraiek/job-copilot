@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ApplicationResponse } from "@/lib/types";
 import { notifyError, notifySuccess } from "@/lib/notify";
 import { parseTailoredCV, TailoredCVPreview } from "@/components/TailoredCVPreview";
-
-export const API = "http://localhost:8000/api/applications";
+import { API } from "@/lib/config";
 
 const STATUSES = ["pending", "applied", "emailed"] as const;
 

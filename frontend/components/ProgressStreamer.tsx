@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { AnalysisResult } from "@/lib/types";
 import { notifyError } from "@/lib/notify";
+import { API } from "@/lib/config";
 
 interface ProgressStep {
   step: string;
@@ -48,7 +49,7 @@ export const ProgressStreamer = ({
 
       try {
         const response = await fetch(
-          "http://localhost:8000/api/applications/analyze",
+          `${API}/analyze`,
           {
             method: "POST",
             body: formData,

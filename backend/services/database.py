@@ -1,9 +1,16 @@
+import os
+
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from services.models import Base
 
-engine = create_engine("sqlite:///job_copilot.db") # SQLite file-based DB
-Base.metadata.create_all(engine)  # Create tables on startup
+load_dotenv("./.env")
+
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///job_copilot.db")
+
+engine = create_engine(DATABASE_URL)
+Base.metadata.create_all(engine)  # create tables on startup
 Session = sessionmaker(bind=engine)
 
 def get_db():

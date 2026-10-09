@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ApplicationResponse } from "@/lib/types";
+import { API } from "@/lib/config";
 import { notifyError, notifySuccess } from "@/lib/notify";
 
 import {
@@ -28,7 +29,7 @@ const History = () => {
 
   const fetchApplications = async () => {
     try {
-      const response = await fetch("http://localhost:8000/api/applications");
+      const response = await fetch(API);
       const data = await response.json();
       setApplications(data);
     } finally {
@@ -38,7 +39,7 @@ const History = () => {
 
   const handleConfirmDelete = async (id: number) => {
     try {
-      await fetch(`http://localhost:8000/api/applications/${id}`, {
+      await fetch(`${API}/${id}`, {
         method: "DELETE",
       });
       setApplications(applications.filter((app) => app.id !== id));
