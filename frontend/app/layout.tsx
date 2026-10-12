@@ -15,9 +15,28 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = "https://job-copilot-helper.vercel.app";
+const description =
+  "Your AI assistant for job applications: a match score, a tailored cover letter, and a CV built for each role.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Job Copilot",
-  description: "Apply with One Click",
+  description,
+  openGraph: {
+    title: "Job Copilot",
+    description,
+    url: siteUrl,
+    siteName: "Job Copilot",
+    type: "website",
+    images: [{ url: "/banner.png", width: 1200, height: 630, alt: "Job Copilot" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Job Copilot",
+    description,
+    images: ["/banner.png"],
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
