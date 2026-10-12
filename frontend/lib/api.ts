@@ -46,7 +46,7 @@ export async function saveApplication(
   data: SaveApplicationRequest,
   token: string | null,
 ): Promise<ApplicationResponse> {
-  const response = await fetch(API, {
+  const response = await fetch(`${API}/`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...authHeader(token) },
     body: JSON.stringify(data),

@@ -33,7 +33,7 @@ const History = () => {
   const fetchApplications = async () => {
     try {
       const token = await getToken();
-      const response = await fetch(API, { headers: authHeader(token) });
+      const response = await fetch(`${API}/`, { headers: authHeader(token) });
       if (!response.ok) {
         const err = await response.json().catch(() => ({ detail: "" }));
         notifyError("Could not load applications", err.detail || `Error ${response.status}`);
