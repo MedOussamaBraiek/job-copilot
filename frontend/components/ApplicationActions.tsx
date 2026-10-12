@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { Check, Copy, Download, Pencil } from "lucide-react";
+import { authHeader } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { ApplicationResponse } from "@/lib/types";
 import { notifyError, notifySuccess } from "@/lib/notify";
@@ -124,6 +126,9 @@ export const ApplicationActions = ({
   const [sending, setSending] = useState(false);
   const [tailoring, setTailoring] = useState(false);
   const tailored = parseTailoredCV(app.tailored_cv);
+  const { getToken } = useAuth();
+  const { user } = useUser();
+  const isAdmin = user?.publicMetadata?.role === "admin";
 
   const tailorCv = async () => {
     setTailoring(true);
@@ -149,8 +154,10 @@ export const ApplicationActions = ({
       form.append("hiring_manager_email", email);
       form.append("cv_source", cvSource);
 
+      const token = await getToken();
       const res = await fetch(`${API}/${app.id}/send-email`, {
         method: "POST",
+        headers: authHeader(token),
         body: form,
       });
       if (!res.ok) throw new Error(await res.text());
@@ -221,6 +228,7 @@ export const ApplicationActions = ({
         </Button>
       </div>
 
+      {isAdmin && (
       <div className="space-y-3">
         <p className="text-sm font-semibold">Send application</p>
 
@@ -266,6 +274,7 @@ export const ApplicationActions = ({
           The drafted email is the body. The cover letter is attached as PDF.
         </p>
       </div>
+      )}
     </div>
   );
 };

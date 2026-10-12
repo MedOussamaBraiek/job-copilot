@@ -15,6 +15,7 @@ from services.email_service import send_application_email, text_to_pdf
 from services.cv_pdf import tailored_cv_to_pdf
 from services.job_utils import find_hiring_email, guess_company_name
 from services.auth import get_current_user_id
+from routers.admin import require_admin
 from models import ApplicationResponse, AnalysisResult, SaveApplicationRequest, RegenerateRequest, RegeneratedContent, TailoredCV, UpdateStatusRequest, UpdateCompanyRequest
 from sqlalchemy.orm import Session
 from fastapi.responses import StreamingResponse
@@ -217,6 +218,7 @@ async def send_application_email_endpoint(
     application_id: int,
     hiring_manager_email: str = Form(...),
     cv_source: str = Form("saved"),
+    _admin: str = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     app = db.query(ApplicationDB).filter(ApplicationDB.id == application_id).first()
