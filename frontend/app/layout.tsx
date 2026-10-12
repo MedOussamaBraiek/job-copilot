@@ -29,13 +29,13 @@ export const metadata: Metadata = {
     url: siteUrl,
     siteName: "Job Copilot",
     type: "website",
-    images: [{ url: "/banner.png", width: 1200, height: 630, alt: "Job Copilot" }],
+    images: [{ url: "/banner-v2.png", width: 1200, height: 630, alt: "Job Copilot" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Job Copilot",
     description,
-    images: ["/banner.png"],
+    images: ["/banner-v2.png"],
   },
 };
 

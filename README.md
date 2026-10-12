@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="frontend/public/banner.png" alt="Job Copilot" width="100%" />
+  <img src="frontend/public/banner-v2.png" alt="Job Copilot" width="100%" />
 </p>
 
 # Job Copilot
