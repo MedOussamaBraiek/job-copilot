@@ -16,6 +16,7 @@ from services.cv_pdf import tailored_cv_to_pdf
 from services.job_utils import find_hiring_email, guess_company_name
 from services.auth import get_current_user_id
 from routers.admin import require_admin
+from services.llm_errors import friendly_llm_error
 from models import ApplicationResponse, AnalysisResult, SaveApplicationRequest, RegenerateRequest, RegeneratedContent, TailoredCV, UpdateStatusRequest, UpdateCompanyRequest
 from sqlalchemy.orm import Session
 from fastapi.responses import StreamingResponse
@@ -127,7 +128,8 @@ async def analyze(
             }
             yield f"data: {json.dumps(final_data)}\n\n"
         except Exception as e:
-            yield f"data: {json.dumps({'status': 'error', 'message': str(e)[:200]})}\n\n"
+            message = friendly_llm_error(e) or str(e)[:200]
+            yield f"data: {json.dumps({'status': 'error', 'message': message})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
@@ -334,7 +336,13 @@ async def tailor_cv(application_id: int, db: Session = Depends(get_db)):
     Copy the name, email, phone and location exactly from the CV.
     """
 
-    raw = llm.invoke(prompt).content.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    try:
+        raw = llm.invoke(prompt).content.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    except Exception as e:
+        message = friendly_llm_error(e)
+        if message:
+            raise HTTPException(status_code=429, detail=message)
+        raise
     tailored = TailoredCV.model_validate(json.loads(raw))
     app.tailored_cv = tailored.model_dump_json()
     db.commit()

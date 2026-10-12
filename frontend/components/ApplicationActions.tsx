@@ -170,6 +170,16 @@ export const ApplicationActions = ({
     }
   };
 
+  const openInMailApp = () => {
+    const lines = app.draft_email.split("\n");
+    const hasSubject = lines[0]?.toLowerCase().startsWith("subject:");
+    const subject = hasSubject
+      ? lines[0].slice("subject:".length).trim()
+      : `Application for ${app.company_name ?? "the role"}`;
+    const body = (hasSubject ? lines.slice(1) : lines).join("\n").trim();
+    window.location.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
+
   const changeStatus = async (status: ApplicationResponse["status"]) => {
     const res = await fetch(`${API}/${app.id}/status`, {
       method: "PATCH",
@@ -274,6 +284,27 @@ export const ApplicationActions = ({
           The drafted email is the body. The cover letter is attached as PDF.
         </p>
       </div>
+      )}
+
+      {!isAdmin && (
+        <div className="space-y-3">
+          <p className="text-sm font-semibold">Send it yourself</p>
+          <p className="text-xs text-gray-500">
+            Opens your email app with the message ready. Attach the CV and cover letter downloaded above.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <input
+              type="email"
+              className="border rounded p-2 text-sm flex-1 min-w-64"
+              placeholder="Hiring manager email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <Button variant="outline" onClick={openInMailApp} disabled={!email}>
+              Open in email app
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
