@@ -60,7 +60,7 @@ def send_application_email(
         msg.attach(attach_pdf(text_to_pdf(cover_letter).getvalue(), "cover_letter.pdf"))
         msg.attach(attach_pdf(cv_pdf, "cv.pdf"))
 
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=20) as server:
             server.login(sender_email, sender_password)
             server.send_message(msg)
         return True

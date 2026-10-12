@@ -42,7 +42,6 @@ export default function ApplicationDetail({
         return;
       }
       const data = await response.json();
-      console.log(data);
       setApp(data);
     } catch (err) {
       setError(true);
