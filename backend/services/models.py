@@ -20,6 +20,7 @@ class Application(Base):  # SQLAlchemy model
     cv_pdf = Column(LargeBinary, nullable=True)
     job_posting = Column(String, nullable=True)
     tailored_cv = Column(String, nullable=True)
+    owner_id = Column(String, nullable=True, index=True)
     gaps = Column(String, nullable=True)
     strengths = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.now)

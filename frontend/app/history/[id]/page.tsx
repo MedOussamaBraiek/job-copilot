@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { use } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { ApplicationResponse } from "@/lib/types";
 import { API } from "@/lib/config";
+import { authHeader } from "@/lib/auth";
 import {
   ApplicationActions,
   CopyButton,
@@ -23,6 +25,7 @@ export default function ApplicationDetail({
   const [app, setApp] = useState<ApplicationResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const { getToken } = useAuth();
 
   useEffect(() => {
     fetchApplication();
@@ -30,9 +33,10 @@ export default function ApplicationDetail({
 
   const fetchApplication = async () => {
     try {
-      const response = await fetch(
-        `${API}/${id}`,
-      );
+      const token = await getToken();
+      const response = await fetch(`${API}/${id}`, {
+        headers: authHeader(token),
+      });
       if (!response.ok) {
         setError(true);
         return;

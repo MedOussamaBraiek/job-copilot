@@ -95,5 +95,15 @@ class TailoredCV(BaseModel):
     languages: List[str] = []
     projects: List[TailoredProject] = []
 
+class AdminUser(BaseModel):
+    id: str
+    name: str
+    email: Optional[str] = None
+    image_url: Optional[str] = None
+    created_at: Optional[int] = None
+    last_sign_in_at: Optional[int] = None
+    application_count: int = 0
+    banned: bool = False
+
 class UpdateStatusRequest(BaseModel):
     status: Literal["pending", "applied", "emailed"]

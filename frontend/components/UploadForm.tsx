@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "./ui/input";
+import { useAuth } from "@clerk/nextjs";
 import { regenerateApplication, saveApplication } from "@/lib/api";
 import { AnalysisResult } from "@/lib/types";
 import { notifyError, notifySuccess } from "@/lib/notify";
@@ -18,6 +19,7 @@ const toBase64 = (file: File) =>
   });
 
 const UploadForm = () => {
+  const { getToken } = useAuth();
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [jobUrl, setJobUrl] = useState("");
   const [jobDescription, setJobDescription] = useState("");
@@ -44,6 +46,7 @@ const UploadForm = () => {
     if (!results) return;
 
     try {
+      const token = await getToken();
       await saveApplication({
         cv_text: results.cv_text,
         company_url: jobUrl,
@@ -57,7 +60,7 @@ const UploadForm = () => {
         job_posting: results.job_posting,
         gaps: results.gaps,
         strengths: results.strengths,
-      });
+      }, token);
       notifySuccess("Application saved", "Added to your history.");
 
       setResults(null);

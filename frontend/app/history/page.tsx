@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ApplicationResponse } from "@/lib/types";
 import { API } from "@/lib/config";
+import { authHeader } from "@/lib/auth";
 import { notifyError, notifySuccess } from "@/lib/notify";
 
 import {
@@ -22,6 +24,7 @@ const History = () => {
   const [applications, setApplications] = useState<ApplicationResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const { getToken } = useAuth();
 
   useEffect(() => {
     fetchApplications();
@@ -29,9 +32,14 @@ const History = () => {
 
   const fetchApplications = async () => {
     try {
-      const response = await fetch(API);
-      const data = await response.json();
-      setApplications(data);
+      const token = await getToken();
+      const response = await fetch(API, { headers: authHeader(token) });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ detail: "" }));
+        notifyError("Could not load applications", err.detail || `Error ${response.status}`);
+        return;
+      }
+      setApplications(await response.json());
     } finally {
       setLoading(false);
     }
@@ -39,8 +47,10 @@ const History = () => {
 
   const handleConfirmDelete = async (id: number) => {
     try {
+      const token = await getToken();
       await fetch(`${API}/${id}`, {
         method: "DELETE",
+        headers: authHeader(token),
       });
       setApplications(applications.filter((app) => app.id !== id));
       notifySuccess("Application deleted");

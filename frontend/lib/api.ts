@@ -5,6 +5,7 @@ import {
   SaveApplicationRequest,
 } from "./types";
 import { API } from "./config";
+import { authHeader } from "./auth";
 
 export async function analyzeApplication(
   cvFile: File,
@@ -43,10 +44,11 @@ export async function regenerateApplication(
 
 export async function saveApplication(
   data: SaveApplicationRequest,
+  token: string | null,
 ): Promise<ApplicationResponse> {
   const response = await fetch(API, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeader(token) },
     body: JSON.stringify(data),
   });
   return response.json();

@@ -13,3 +13,4 @@ pdfplumber==0.10.3
 psycopg[binary]==3.3.6
 reportlab==4.0.9
 python-multipart==0.0.32
+pyjwt==2.8.0

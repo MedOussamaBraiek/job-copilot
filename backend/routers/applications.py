@@ -14,6 +14,7 @@ from services.models import Application as ApplicationDB
 from services.email_service import send_application_email, text_to_pdf
 from services.cv_pdf import tailored_cv_to_pdf
 from services.job_utils import find_hiring_email, guess_company_name
+from services.auth import get_current_user_id
 from models import ApplicationResponse, AnalysisResult, SaveApplicationRequest, RegenerateRequest, RegeneratedContent, TailoredCV, UpdateStatusRequest, UpdateCompanyRequest
 from sqlalchemy.orm import Session
 from fastapi.responses import StreamingResponse
@@ -22,6 +23,16 @@ llm = ChatGroq(model="openai/gpt-oss-120b")
 tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 
 router = APIRouter(prefix="/api/applications", tags=["applications"])
+
+
+def get_owned_application(db: Session, application_id: int, user_id: str) -> ApplicationDB:
+    app = db.query(ApplicationDB).filter(
+        ApplicationDB.id == application_id,
+        ApplicationDB.owner_id == user_id,
+    ).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+    return app
 
 
 def tailored_pdf(raw: str) -> bytes:
@@ -144,22 +155,28 @@ async def regenerate(request: RegenerateRequest) -> RegeneratedContent:
 
 
 @router.get("/")
-async def get_applications(db: Session = Depends(get_db)) -> List[ApplicationResponse]:
-    result = db.query(ApplicationDB).all()
+async def get_applications(
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+) -> List[ApplicationResponse]:
+    result = db.query(ApplicationDB).filter(ApplicationDB.owner_id == user_id).all()
     return [ApplicationResponse.from_orm(app) for app in result]
 
 
 @router.get("/{application_id}")
-async def get_application(application_id: int, db: Session = Depends(get_db)) -> ApplicationResponse:
-    app = db.query(ApplicationDB).filter(ApplicationDB.id == application_id).first()
-    if not app:
-        raise HTTPException(status_code=404, detail="Application not found")
+async def get_application(
+    application_id: int,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+) -> ApplicationResponse:
+    app = get_owned_application(db, application_id, user_id)
     return ApplicationResponse.from_orm(app)
 
 @router.post("/")
 async def save_application(
     data: SaveApplicationRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
 ) -> ApplicationResponse:
     app = ApplicationDB(
         cv_text=data.cv_text,
@@ -172,6 +189,7 @@ async def save_application(
         hiring_email=data.hiring_email,
         cv_pdf=base64.b64decode(data.cv_pdf_base64) if data.cv_pdf_base64 else None,
         job_posting=data.job_posting,
+        owner_id=user_id,
         gaps=json.dumps(data.gaps) if data.gaps else None,
         strengths=json.dumps(data.strengths) if data.strengths else None,
     )
