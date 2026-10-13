@@ -170,14 +170,18 @@ export const ApplicationActions = ({
     }
   };
 
-  const openInMailApp = () => {
+  const openInGmail = () => {
     const lines = app.draft_email.split("\n");
     const hasSubject = lines[0]?.toLowerCase().startsWith("subject:");
     const subject = hasSubject
       ? lines[0].slice("subject:".length).trim()
       : `Application for ${app.company_name ?? "the role"}`;
     const body = (hasSubject ? lines.slice(1) : lines).join("\n").trim();
-    window.location.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(
+      `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
+      "_blank",
+      "noopener",
+    );
   };
 
   const changeStatus = async (status: ApplicationResponse["status"]) => {
@@ -286,7 +290,7 @@ export const ApplicationActions = ({
       </div>
       )}
 
-      {!isAdmin && (
+      {(
         <div className="space-y-3">
           <p className="text-sm font-semibold">Send it yourself</p>
           <p className="text-xs text-gray-500">
@@ -300,8 +304,8 @@ export const ApplicationActions = ({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
-            <Button variant="outline" onClick={openInMailApp} disabled={!email}>
-              Open in email app
+            <Button variant="outline" onClick={openInGmail} disabled={!email}>
+              Open in Gmail
             </Button>
           </div>
         </div>
